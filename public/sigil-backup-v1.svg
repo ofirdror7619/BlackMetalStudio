@@ -1,0 +1,51 @@
+<svg viewBox="0 0 1000 1000" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <defs>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="2.2" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+    <style>
+      .ring,
+      .star,
+      .horns,
+      .head,
+      .detail,
+      .beard,
+      .faint {
+        fill: none;
+        stroke: #a53232;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        filter: url(#glow);
+      }
+      .ring { stroke-width: 6; }
+      .star { stroke-width: 9; stroke: #bd3b3b; }
+      .horns,
+      .head { stroke-width: 4; }
+      .detail,
+      .beard { stroke-width: 3.5; }
+      .faint { stroke-width: 2.2; opacity: 0.55; }
+    </style>
+  </defs>
+
+  <g transform="rotate(180 500 500)">
+    <circle cx="500" cy="500" r="360" class="ring" />
+    <circle cx="500" cy="500" r="325" class="ring faint" />
+    <polygon points="500,145 590,430 885,430 645,605 735,885 500,715 265,885 355,605 115,430 410,430" class="star" />
+    <path d="M500 190 L500 810 M190 500 L810 500" class="faint" />
+  </g>
+
+  <path d="M500 345 C420 340 360 370 335 430 C320 465 333 513 372 540 C405 563 426 590 430 630 C434 680 406 728 346 765 M500 345 C580 340 640 370 665 430 C680 465 667 513 628 540 C595 563 574 590 570 630 C566 680 594 728 654 765" class="horns" />
+  <path d="M500 390 C460 390 430 418 422 455 C416 482 422 518 444 540 C466 562 484 584 492 615 C496 630 504 630 508 615 C516 584 534 562 556 540 C578 518 584 482 578 455 C570 418 540 390 500 390Z" class="head" />
+  <path d="M458 462 C448 462 440 470 440 482 C440 492 448 500 458 500 C468 500 476 492 476 482 C476 470 468 462 458 462Z" class="detail" />
+  <path d="M542 462 C532 462 524 470 524 482 C524 492 532 500 542 500 C552 500 560 492 560 482 C560 470 552 462 542 462Z" class="detail" />
+  <path d="M500 500 L488 535 L500 550 L512 535 Z" class="detail" />
+  <path d="M458 566 C478 582 522 582 542 566" class="detail" />
+  <path d="M476 612 C490 640 490 700 462 742" class="beard" />
+  <path d="M524 612 C510 640 510 700 538 742" class="beard" />
+  <path d="M500 292 L486 334 L500 346 L514 334 Z" class="faint" />
+  <path d="M430 676 C455 700 480 712 500 718 C520 712 545 700 570 676" class="faint" />
+</svg>

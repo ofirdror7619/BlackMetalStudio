@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { spawn } from "child_process";
+import fs from "fs";
 import path from "path";
 
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -15,10 +16,21 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
   if (preset === "Immortal") { pitch=1.8; formant=1.15; overdrive=14; musicPrompt="blast beats, deep guitars, cold reverb"; }
   if (preset === "Mayhem") { pitch=2.0; formant=1.2; overdrive=15; musicPrompt="harsh vocals, tremolo guitars, heavy reverb"; }
 
+  const pitchArg = String(pitch);
+  const formantArg = String(formant);
+  const overdriveArg = String(overdrive);
+  const layersArg = String(layers || 2);
+
   // Generate scream (layered)
   const pythonScream = spawn("python", [
     path.join(process.cwd(), "python", "rvc_runner.py"),
-    text, pitch, formant, overdrive, echo, 120, layers || 2
+    text,
+    pitchArg,
+    formantArg,
+    overdriveArg,
+    echo,
+    "120",
+    layersArg,
   ]);
 
   pythonScream.on("close", (code) => {
@@ -43,7 +55,17 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
         finalFile
       ]);
 
-      ffmpeg.on("close", () => res.sendFile(finalFile));
+      ffmpeg.on("close", (code3) => {
+        if (code3 !== 0) return res.status(500).send("Error mixing final song");
+
+        fs.readFile(finalFile, (error, data) => {
+          if (error) return res.status(500).send("Error reading final song");
+
+          res.setHeader("Content-Type", "audio/wav");
+          res.setHeader("Content-Disposition", 'inline; filename="blackmetal_song.wav"');
+          res.status(200).send(data);
+        });
+      });
     });
   });
 }

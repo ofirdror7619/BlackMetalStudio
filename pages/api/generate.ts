@@ -6,15 +6,11 @@ import path from "path";
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") return res.status(405).end();
 
-  const { text, preset, layers } = req.body;
+  const { text, layers } = req.body;
 
-  // פרמטרים לפי preset
+  // Default generation profile
   let pitch = 2.0, formant = 1.2, overdrive = 15, echo = "0.8:0.9:50:0.4";
   let musicPrompt = "raw black metal tremolo guitars blast beats";
-
-  if (preset === "Darkthrone") { pitch=2.3; formant=1.25; overdrive=18; musicPrompt="tremolo guitars, blast beats, lo-fi"; }
-  if (preset === "Immortal") { pitch=1.8; formant=1.15; overdrive=14; musicPrompt="blast beats, deep guitars, cold reverb"; }
-  if (preset === "Mayhem") { pitch=2.0; formant=1.2; overdrive=15; musicPrompt="harsh vocals, tremolo guitars, heavy reverb"; }
 
   const pitchArg = String(pitch);
   const formantArg = String(formant);

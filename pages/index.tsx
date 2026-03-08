@@ -58,7 +58,6 @@ const seeded = (seed: number) => {
 
 export default function Home() {
   const [text, setText] = useState("");
-  const [preset, setPreset] = useState("Darkthrone");
   const [layers, setLayers] = useState(2);
   const [ritualStatus, setRitualStatus] = useState<"Idle" | "Summoning" | "Forging Track" | "Complete">("Idle");
   const [completionFlash, setCompletionFlash] = useState(false);
@@ -151,7 +150,7 @@ export default function Home() {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, preset, layers }),
+        body: JSON.stringify({ text, layers }),
       });
 
       setRitualStatus("Forging Track");
@@ -413,14 +412,6 @@ export default function Home() {
             />
           </div>
           <button type="button" className="burnButton" onClick={burnAfterReading} disabled={ritualLocked || text.trim().length === 0}>Burn After Reading</button>
-          <div className="field">
-            <label>Preset:</label>
-            <select value={preset} onChange={e => setPreset(e.target.value)} disabled={ritualLocked}>
-              <option>Darkthrone</option>
-              <option>Immortal</option>
-              <option>Mayhem</option>
-            </select>
-          </div>
           <div className="field">
             <label>Layered Screams:</label>
             <div className="runeStepper" role="group" aria-label="Layered Screams">

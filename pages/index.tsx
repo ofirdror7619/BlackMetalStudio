@@ -268,6 +268,46 @@ export default function Home() {
             </span>
           ))}
         </div>
+        <svg
+          className="goetiaMotifs"
+          viewBox="0 0 1400 900"
+          aria-hidden="true"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <g className="goetiaSeal sealLeft" transform="translate(220 220)">
+            <circle r="134" className="goetiaStroke faintGoetia" />
+            <circle r="118" className="goetiaStroke" />
+            <circle r="94" className="goetiaStroke faintGoetia" />
+            <path d="M0 -98 L81 48 L-81 48 Z" className="goetiaStroke" />
+            <path d="M0 -80 L0 82 M-70 -34 L70 -34 M-58 18 L58 18" className="goetiaGlyph" />
+            <path d="M-44 64 C-22 90 22 90 44 64" className="goetiaGlyph" />
+            <path d="M-94 0 L94 0 M0 -94 L0 94 M-66 -66 L66 66 M-66 66 L66 -66" className="goetiaHair" />
+            <text y="154" className="goetiaName">BAEL</text>
+          </g>
+
+          <g className="goetiaSeal sealRight" transform="translate(1180 260)">
+            <circle r="126" className="goetiaStroke faintGoetia" />
+            <circle r="110" className="goetiaStroke" />
+            <polygon points="0,-90 74,-32 46,74 -46,74 -74,-32" className="goetiaStroke" />
+            <path d="M-70 0 C-18 -52 18 -52 70 0 C18 52 -18 52 -70 0Z" className="goetiaGlyph" />
+            <path d="M0 -66 L0 66 M-54 0 L54 0 M-40 -40 L40 40 M-40 40 L40 -40" className="goetiaGlyph" />
+            <circle r="14" className="goetiaGlyph" />
+            <path d="M-94 -12 C-74 -34 -42 -44 0 -44 C42 -44 74 -34 94 -12" className="goetiaHair" />
+            <text y="150" className="goetiaName">ASMODEUS</text>
+          </g>
+
+          <g className="goetiaSeal sealBottom" transform="translate(700 760)">
+            <circle r="138" className="goetiaStroke faintGoetia" />
+            <circle r="124" className="goetiaStroke" />
+            <circle r="102" className="goetiaStroke faintGoetia" />
+            <path d="M0 -96 L76 -12 L46 86 L-46 86 L-76 -12 Z" className="goetiaStroke" />
+            <path d="M-58 24 L58 24 M-44 -16 L44 -16" className="goetiaGlyph" />
+            <path d="M-32 58 L0 12 L32 58" className="goetiaGlyph" />
+            <path d="M0 -72 C24 -46 24 -20 0 8 C-24 -20 -24 -46 0 -72Z" className="goetiaGlyph" />
+            <path d="M-100 0 L100 0 M0 -100 L0 100 M-70 -70 L70 70 M-70 70 L70 -70" className="goetiaHair" />
+            <text y="170" className="goetiaName">PAIMON</text>
+          </g>
+        </svg>
         <div className="embersFloat" aria-hidden="true">
           {emberParticles.map((particle, index) => (
             <span
@@ -559,6 +599,68 @@ export default function Home() {
           filter: blur(0.15px);
         }
 
+        .goetiaMotifs {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          pointer-events: none;
+          z-index: 0;
+          opacity: 0.28;
+          filter: blur(0.15px) drop-shadow(0 0 8px rgba(170, 58, 46, 0.35));
+        }
+
+        .goetiaSeal {
+          animation: goetiaDrift 30s ease-in-out infinite, goetiaPulse 13s ease-in-out infinite;
+        }
+
+        .sealRight {
+          animation-duration: 36s;
+          animation-delay: -6s;
+        }
+
+        .sealBottom {
+          animation-duration: 42s;
+          animation-delay: -12s;
+        }
+
+        .goetiaStroke,
+        .goetiaGlyph {
+          fill: none;
+          stroke-linecap: round;
+          stroke-linejoin: round;
+        }
+
+        .goetiaStroke {
+          stroke: rgba(180, 82, 82, 0.62);
+          stroke-width: 2.5;
+        }
+
+        .goetiaGlyph {
+          stroke: rgba(220, 122, 118, 0.7);
+          stroke-width: 2.05;
+        }
+
+        .goetiaHair {
+          fill: none;
+          stroke: rgba(196, 96, 90, 0.48);
+          stroke-width: 1.2;
+          stroke-dasharray: 2 8;
+        }
+
+        .goetiaName {
+          fill: rgba(206, 126, 120, 0.56);
+          text-anchor: middle;
+          font-size: 18px;
+          letter-spacing: 0.24em;
+          font-family: "Cormorant Garamond", Georgia, serif;
+          text-transform: uppercase;
+        }
+
+        .faintGoetia {
+          opacity: 0.6;
+        }
+
         .glyph {
           position: absolute;
           color: #d5b39a;
@@ -627,6 +729,26 @@ export default function Home() {
           }
           94% {
             filter: brightness(1.2);
+          }
+        }
+
+        @keyframes goetiaDrift {
+          0%,
+          100% {
+            transform: rotate(-0.5deg) translateY(0);
+          }
+          50% {
+            transform: rotate(0.5deg) translateY(-6px);
+          }
+        }
+
+        @keyframes goetiaPulse {
+          0%,
+          100% {
+            opacity: 0.72;
+          }
+          50% {
+            opacity: 1;
           }
         }
 

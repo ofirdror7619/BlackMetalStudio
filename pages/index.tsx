@@ -3,13 +3,6 @@ import { Cormorant_Garamond, Inter } from "next/font/google";
 
 const bodyFont = Inter({ subsets: ["latin"], weight: ["400", "500", "600"] });
 const titleFont = Cormorant_Garamond({ subsets: ["latin"], weight: ["600", "700"] });
-const romanLayers: Record<number, string> = {
-  1: "I",
-  2: "II",
-  3: "III",
-  4: "IV",
-  5: "V",
-};
 const grimoireLines = [
   "in nocte invocamus",
   "ignis sub luna",
@@ -58,8 +51,8 @@ const seeded = (seed: number) => {
 
 export default function Home() {
   const [text, setText] = useState("");
-  const [layers, setLayers] = useState(2);
-  const [ritualStatus, setRitualStatus] = useState<"Idle" | "Summoning" | "Forging Track" | "Complete">("Idle");
+  const [ritualStatus, setRitualStatus] = useState<"Idle" | "Summoning" | "Converting Voice" | "Complete">("Idle");
+  const [generatedAudioUrl, setGeneratedAudioUrl] = useState<string | null>(null);
   const [completionFlash, setCompletionFlash] = useState(false);
   const [inkSpread, setInkSpread] = useState(false);
   const [burningLyrics, setBurningLyrics] = useState(false);
@@ -74,7 +67,7 @@ export default function Home() {
   const completionFlashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inkSpreadTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const burnTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const ritualLocked = ritualStatus === "Summoning" || ritualStatus === "Forging Track";
+  const ritualLocked = ritualStatus === "Summoning" || ritualStatus === "Converting Voice";
   const canGenerate = !ritualLocked && text.trim().length > 0;
   const emberParticles = useMemo(
     () =>
@@ -84,6 +77,19 @@ export default function Home() {
         duration: `${6 + seeded(index + 1601) * 8}s`,
         delay: `${seeded(index + 1701) * 6}s`,
         drift: `${-22 + seeded(index + 1801) * 44}px`,
+      })),
+    []
+  );
+  const ritualCandles = useMemo(
+    () =>
+      Array.from({ length: 11 }, (_, index) => ({
+        waxHeight: `${18 + Math.round(seeded(index + 2101) * 20)}px`,
+        waxWidth: `${7 + Math.round(seeded(index + 2201) * 6)}px`,
+        flameSize: `${9 + Math.round(seeded(index + 2301) * 6)}px`,
+        flicker: `${1.45 + seeded(index + 2401) * 1.15}s`,
+        delay: `${seeded(index + 2501) * 1.4}s`,
+        chaos: `${0.95 + seeded(index + 2601) * 0.8}s`,
+        jitter: `${-1.6 + seeded(index + 2701) * 3.2}px`,
       })),
     []
   );
@@ -152,15 +158,24 @@ export default function Home() {
 
     try {
       setRitualStatus("Summoning");
+      setRitualStatus("Converting Voice");
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, layers }),
+        body: JSON.stringify({ text, layers: 1 }),
       });
 
-      setRitualStatus("Forging Track");
+      if (!res.ok) {
+        throw new Error("Generation failed");
+      }
+
+      if (generatedAudioUrl) {
+        URL.revokeObjectURL(generatedAudioUrl);
+      }
+
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
+      setGeneratedAudioUrl(url);
       const audio = new Audio(url);
       await audio.play();
 
@@ -178,6 +193,20 @@ export default function Home() {
       setCompletionFlash(false);
     }
   };
+
+  const playGeneratedAudio = async () => {
+    if (!generatedAudioUrl) return;
+    const audio = new Audio(generatedAudioUrl);
+    await audio.play();
+  };
+
+  useEffect(() => {
+    return () => {
+      if (generatedAudioUrl) {
+        URL.revokeObjectURL(generatedAudioUrl);
+      }
+    };
+  }, [generatedAudioUrl]);
 
   useEffect(() => {
     let index = 0;
@@ -442,46 +471,52 @@ export default function Home() {
 
         <section className={`panel ${ritualLocked ? "locked" : ""}`}>
           <h1 className={titleFont.className}><span className="titleRune">᛭</span> Black Metal Studio <span className="titleRune">᛭</span></h1>
-          <div className={`textAreaShell ${burningLyrics ? "burning" : ""}`}>
-            <div className="burnRunes" aria-hidden="true">
-              <span>ᚨ ᛉ ᚲ ᚱ ᛟ ᚦ ᚾ ᛗ ᛚ</span>
-              <span>ᛁ ᚷ ᚢ ᛇ ᛒ ᛞ ᛜ ᚹ ᛏ</span>
+          <div className="textAreaWithCandles">
+            <div className="candleRow" aria-hidden="true">
+              {ritualCandles.map((candle, index) => (
+                <span
+                  key={`candle-${index}`}
+                  className="candleCluster"
+                  style={{
+                    ["--flame-chaos" as string]: candle.chaos,
+                    ["--flame-jitter" as string]: candle.jitter,
+                  }}
+                >
+                  <span className="candleFlame" style={{ width: candle.flameSize, height: candle.flameSize, animationDuration: candle.flicker, animationDelay: candle.delay }} />
+                  <span className="candleWick" />
+                  <span className="candleWax" style={{ width: candle.waxWidth, height: candle.waxHeight }} />
+                </span>
+              ))}
             </div>
-            <textarea
-              value={text}
-              onChange={e => handleTextChange(e.target.value)}
-              placeholder={typedPlaceholder || lyricPlaceholder}
-              rows={5}
-              disabled={ritualLocked}
-              className={inkSpread ? "inkSpread" : ""}
-            />
+            <div className={`textAreaShell ${burningLyrics ? "burning" : ""}`}>
+              <div className="burnRunes" aria-hidden="true">
+                <span>ᚨ ᛉ ᚲ ᚱ ᛟ ᚦ ᚾ ᛗ ᛚ</span>
+                <span>ᛁ ᚷ ᚢ ᛇ ᛒ ᛞ ᛜ ᚹ ᛏ</span>
+              </div>
+              <textarea
+                value={text}
+                onChange={e => handleTextChange(e.target.value)}
+                placeholder={typedPlaceholder || lyricPlaceholder}
+                rows={5}
+                disabled={ritualLocked}
+                className={inkSpread ? "inkSpread" : ""}
+              />
+            </div>
           </div>
           <button type="button" className="burnButton" onClick={burnAfterReading} disabled={ritualLocked || text.trim().length === 0}>Burn After Reading</button>
-          <div className="field">
-            <label>Layered Screams:</label>
-            <div className="runeStepper" role="group" aria-label="Layered Screams">
-              <button type="button" className="runeControl" onClick={() => setLayers(value => Math.max(1, value - 1))} disabled={ritualLocked}>-</button>
-              {[1, 2, 3, 4, 5].map(value => (
-                <button
-                  key={value}
-                  type="button"
-                  className={`runeValue ${layers === value ? "active" : ""}`}
-                  onClick={() => setLayers(value)}
-                  disabled={ritualLocked}
-                >
-                  {romanLayers[value]}
-                </button>
-              ))}
-              <button type="button" className="runeControl" onClick={() => setLayers(value => Math.min(5, value + 1))} disabled={ritualLocked}>+</button>
-            </div>
-          </div>
           <div className={`ritualBar ${ritualStatus === "Idle" ? "idle" : ""}`} aria-live="polite">
-            <span className={`ritualStep ${ritualStatus === "Idle" ? "active" : ""}`}><span className="shrineIcon" aria-hidden="true">✶</span>Idle</span>
-            <span className={`ritualStep ${ritualStatus === "Summoning" ? "active" : ""}`}><span className="shrineIcon" aria-hidden="true">☩</span>Summoning</span>
-            <span className={`ritualStep ${ritualStatus === "Forging Track" ? "active" : ""}`}><span className="shrineIcon" aria-hidden="true">⛧</span>Forging Track</span>
-            <span className={`ritualStep ${ritualStatus === "Complete" ? "active" : ""}`}><span className="shrineIcon" aria-hidden="true">✹</span>Complete</span>
+            <span className={`ritualStep ${ritualStatus === "Idle" ? "active" : ""}`}><span className="shrineIcon" aria-hidden="true">✶</span>Idle<span className="ritualOrbitDot" aria-hidden="true" /></span>
+            <span className={`ritualStep ${ritualStatus === "Summoning" ? "active" : ""}`}><span className="shrineIcon" aria-hidden="true">☩</span>Summoning<span className="ritualOrbitDot" aria-hidden="true" /></span>
+            <span className={`ritualStep ${ritualStatus === "Converting Voice" ? "active" : ""}`}><span className="shrineIcon" aria-hidden="true">⛧</span>Converting Voice<span className="ritualOrbitDot" aria-hidden="true" /></span>
+            <span className={`ritualStep ${ritualStatus === "Complete" ? "active" : ""}`}><span className="shrineIcon" aria-hidden="true">✹</span>Complete<span className="ritualOrbitDot" aria-hidden="true" /></span>
           </div>
-          <button className="mainGenerate" onClick={generate} disabled={!canGenerate}>{ritualLocked ? "Forging Black Metal Song..." : "Generate Black Metal Song"}</button>
+          <button className="mainGenerate" onClick={generate} disabled={!canGenerate}>{ritualLocked ? "Converting Black Metal Voice..." : "Generate Black Metal Voice"}</button>
+          {generatedAudioUrl && (
+            <div className="postActions">
+              <button type="button" onClick={playGeneratedAudio}>Play</button>
+              <a href={generatedAudioUrl} download="blackmetal_tts.wav" className="downloadButton">Download</a>
+            </div>
+          )}
         </section>
         <div className={`completionFlash ${completionFlash ? "active" : ""}`} aria-hidden="true" />
       </main>
@@ -1021,6 +1056,7 @@ export default function Home() {
         textarea,
         select {
           width: 100%;
+          box-sizing: border-box;
           background: rgba(14, 14, 14, 0.86);
           color: #f0e6dd;
           border: 1px solid #5d1a1a;
@@ -1039,6 +1075,118 @@ export default function Home() {
           position: relative;
           overflow: hidden;
           width: 100%;
+        }
+
+        .textAreaWithCandles {
+          position: relative;
+          width: 100%;
+          padding-top: 0;
+          margin-top: 18px;
+        }
+
+        .candleRow {
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          z-index: 5;
+          display: flex;
+          align-items: flex-end;
+          justify-content: space-between;
+          gap: 4px;
+          pointer-events: none;
+          padding: 0 10px;
+          transform: translateY(-100%);
+        }
+
+        .candleCluster {
+          position: relative;
+          display: inline-flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: flex-end;
+          min-width: 10px;
+          transform: none;
+          overflow: visible;
+        }
+
+        .candleFlame {
+          position: relative;
+          left: 0;
+          z-index: 4;
+          border-radius: 52% 52% 62% 62%;
+          clip-path: polygon(50% 0%, 64% 20%, 74% 40%, 70% 60%, 58% 82%, 50% 100%, 42% 82%, 30% 60%, 26% 40%, 36% 20%);
+          background:
+            radial-gradient(circle at 52% 28%, rgba(255, 247, 218, 0.98) 0%, rgba(255, 225, 152, 0.92) 36%, rgba(255, 159, 77, 0.76) 58%, rgba(214, 82, 35, 0.22) 82%, rgba(214, 82, 35, 0) 100%);
+          transform-origin: 50% 88%;
+          animation:
+            candleFlameFlicker 2.1s ease-in-out infinite,
+            candleFlameLean 1.15s ease-in-out infinite,
+            candleFlameChaos var(--flame-chaos, 1.2s) steps(7, end) infinite,
+            candleFlameGust 8.8s ease-in-out infinite;
+          margin-bottom: -1px;
+          mix-blend-mode: screen;
+          filter: blur(0.15px) saturate(1.08) drop-shadow(0 0 5px rgba(255, 140, 90, 0.35));
+        }
+
+        .candleFlame::before,
+        .candleFlame::after {
+          content: "";
+          position: absolute;
+          pointer-events: none;
+        }
+
+        .candleFlame::before {
+          inset: 24% 33% 24% 33%;
+          border-radius: 48% 48% 60% 60%;
+          background: radial-gradient(circle at 50% 34%, rgba(255, 255, 240, 0.98), rgba(255, 242, 196, 0.78) 48%, rgba(255, 220, 140, 0.18) 100%);
+          filter: blur(0.2px);
+          animation: candleCorePulse 1.6s ease-in-out infinite;
+        }
+
+        .candleFlame::after {
+          inset: -24% -24% -14% -24%;
+          border-radius: 60%;
+          background: radial-gradient(circle at 50% 58%, rgba(255, 168, 96, 0.4), rgba(255, 90, 44, 0));
+          animation: candleAuraBreath 2.2s ease-in-out infinite;
+        }
+
+        .candleWick {
+          width: 1.5px;
+          height: 4px;
+          background: linear-gradient(180deg, rgba(48, 26, 20, 0.95), rgba(20, 10, 8, 0.95));
+          margin-bottom: 0;
+          box-shadow: 0 0 3px rgba(255, 172, 99, 0.28);
+          z-index: 3;
+        }
+
+        .candleWax {
+          position: relative;
+          z-index: 2;
+          border-radius: 3px 3px 1px 1px;
+          background:
+            linear-gradient(180deg, rgba(248, 224, 194, 0.9) 0%, rgba(213, 172, 136, 0.86) 38%, rgba(126, 85, 60, 0.9) 100%);
+          box-shadow: inset 0 0 4px rgba(255, 240, 214, 0.35), 0 0 6px rgba(180, 86, 42, 0.28);
+        }
+
+        .candleWax::before,
+        .candleWax::after {
+          content: "";
+          position: absolute;
+          bottom: 3px;
+          width: 2px;
+          border-radius: 999px;
+          background: linear-gradient(180deg, rgba(246, 220, 190, 0.88), rgba(186, 138, 104, 0.78));
+        }
+
+        .candleWax::before {
+          left: 16%;
+          height: 7px;
+        }
+
+        .candleWax::after {
+          right: 18%;
+          height: 5px;
         }
 
         .textAreaShell::before,
@@ -1111,7 +1259,7 @@ export default function Home() {
         }
 
         textarea {
-          resize: vertical;
+          resize: none;
         }
 
         textarea:hover,
@@ -1204,6 +1352,7 @@ export default function Home() {
         }
 
         .ritualStep {
+          position: relative;
           padding: 6px 10px;
           font-size: 0.74rem;
           letter-spacing: 0.08em;
@@ -1214,6 +1363,29 @@ export default function Home() {
           box-shadow:
             0 7px 16px rgba(0, 0, 0, 0.38),
             0 0 10px rgba(120, 22, 22, 0.18);
+        }
+
+        .ritualOrbitDot {
+          position: absolute;
+          width: 20px;
+          height: 20px;
+          display: grid;
+          place-items: center;
+          top: 0;
+          left: 0;
+          transform: translate(-50%, -50%);
+          opacity: 0;
+          pointer-events: none;
+        }
+
+        .ritualOrbitDot::before {
+          content: "⛧";
+          display: block;
+          color: #ff6b6b;
+          font-size: 0.9rem;
+          font-weight: 700;
+          line-height: 1;
+          text-shadow: 0 0 10px rgba(255, 134, 134, 0.95), 0 0 18px rgba(255, 58, 58, 0.85), 0 0 26px rgba(188, 22, 22, 0.72);
         }
 
         .shrineIcon {
@@ -1235,6 +1407,11 @@ export default function Home() {
           background: linear-gradient(180deg, rgba(94, 18, 18, 0.86), rgba(31, 8, 8, 0.9));
           box-shadow: 0 0 10px rgba(171, 37, 37, 0.35);
           animation: ritualPulse 2.8s ease-in-out infinite;
+        }
+
+        .ritualStep.active .ritualOrbitDot {
+          opacity: 1;
+          animation: ritualBorderOrbit 5.6s linear infinite;
         }
 
         .ritualStep.active .shrineIcon {
@@ -1271,6 +1448,32 @@ export default function Home() {
           width: 100%;
         }
 
+        .postActions {
+          display: flex;
+          justify-content: center;
+          gap: 10px;
+          width: 100%;
+        }
+
+        .downloadButton {
+          border: 1px solid #992a2a;
+          background: linear-gradient(180deg, rgba(52, 9, 9, 0.95) 0%, rgba(20, 4, 4, 0.95) 100%);
+          color: #f6ece2;
+          padding: 12px 16px;
+          font-size: 0.98rem;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          text-decoration: none;
+          box-shadow:
+            0 12px 24px rgba(0, 0, 0, 0.52),
+            0 2px 0 rgba(0, 0, 0, 0.5),
+            0 0 14px rgba(144, 26, 26, 0.26);
+        }
+
+        .downloadButton:hover {
+          background: linear-gradient(180deg, #4a0f0f 0%, #1c0707 100%);
+        }
+
         button:hover {
           background: linear-gradient(180deg, #4a0f0f 0%, #1c0707 100%);
         }
@@ -1301,6 +1504,135 @@ export default function Home() {
 
         .completionFlash.active {
           animation: completionFlashPulse 0.55s ease-out;
+        }
+
+        @media (max-width: 900px) {
+          .goetiaMotifs {
+            opacity: 0.2;
+          }
+
+          .embers {
+            opacity: 0.36;
+          }
+        }
+
+        @media (max-width: 768px) {
+          .page {
+            height: auto;
+            min-height: 100dvh;
+            overflow-y: auto;
+            padding: 10px 12px 18px;
+          }
+
+          .runeCircle,
+          .sigil {
+            top: 72%;
+            width: min(132vw, 760px);
+            height: min(132vw, 760px);
+          }
+
+          .sigil {
+            opacity: 0.34;
+          }
+
+          .sigilBreath {
+            top: calc(72% + min(14vw, 92px));
+            width: min(48vw, 220px);
+            height: min(34vw, 150px);
+          }
+
+          .panel {
+            width: min(96vw, 620px);
+            gap: 10px;
+            padding: 8px 0 14px;
+          }
+
+          h1 {
+            font-size: clamp(1.4rem, 6.2vw, 2rem);
+            line-height: 1.2;
+          }
+
+          .titleRune {
+            margin: 0 6px;
+          }
+
+          .textAreaWithCandles {
+            margin-top: 22px;
+          }
+
+          .candleRow {
+            padding: 0 6px;
+            gap: 3px;
+          }
+
+          .candleCluster {
+            min-width: 8px;
+          }
+
+          textarea,
+          select {
+            font-size: 16px;
+            padding: 10px;
+          }
+
+          textarea {
+            min-height: 136px;
+          }
+
+          .burnButton,
+          button,
+          .downloadButton {
+            width: 100%;
+            font-size: 0.9rem;
+            padding: 11px 12px;
+          }
+
+          .ritualBar {
+            gap: 4px;
+          }
+
+          .ritualStep {
+            padding: 5px 8px;
+            font-size: 0.66rem;
+            letter-spacing: 0.05em;
+          }
+
+          .ritualOrbitDot {
+            width: 18px;
+            height: 18px;
+          }
+
+          .ritualOrbitDot::before {
+            font-size: 0.82rem;
+          }
+
+          .postActions {
+            flex-direction: column;
+            gap: 8px;
+          }
+        }
+
+        @media (max-width: 420px) {
+          .page {
+            padding: 8px 8px 14px;
+          }
+
+          .panel {
+            width: 98vw;
+          }
+
+          .ritualStep {
+            font-size: 0.62rem;
+            padding: 5px 7px;
+          }
+
+          .candleRow {
+            padding: 0 4px;
+          }
+
+          .textAreaWithCandles {
+            margin-top: 24px;
+          }
         }
 
         @keyframes fogDriftA {
@@ -1362,6 +1694,125 @@ export default function Home() {
           100% {
             transform: translate(calc(-50% + 6px), -95px) scale(1.6);
             opacity: 0;
+          }
+        }
+
+        @keyframes candleFlameFlicker {
+          0%,
+          100% {
+            transform: translateY(0) scale(0.96, 1.05) rotate(-3deg);
+            opacity: 0.9;
+            filter: brightness(0.95);
+          }
+          18% {
+            transform: translateY(-1.05px) scale(1.11, 0.88) rotate(2.4deg);
+            opacity: 1;
+            filter: brightness(1.14);
+          }
+          34% {
+            transform: translateY(0.85px) scale(0.9, 1.16) rotate(-4.1deg);
+            opacity: 0.84;
+            filter: brightness(0.86);
+          }
+          57% {
+            transform: translateY(-0.5px) scale(1.07, 0.93) rotate(3.3deg);
+            opacity: 0.93;
+            filter: brightness(1.1);
+          }
+          79% {
+            transform: translateY(0.6px) scale(0.94, 1.08) rotate(-2.8deg);
+            opacity: 0.8;
+            filter: brightness(0.9);
+          }
+        }
+
+        @keyframes candleFlameLean {
+          0%,
+          100% {
+            left: 0;
+          }
+          32% {
+            left: calc(var(--flame-jitter, 0px) * 0.6);
+          }
+          66% {
+            left: calc(var(--flame-jitter, 0px) * -0.75);
+          }
+        }
+
+        @keyframes candleFlameChaos {
+          0%,
+          100% {
+            filter: blur(0.15px) saturate(1.08);
+          }
+          20% {
+            filter: blur(0.22px) saturate(1.18) brightness(1.1);
+          }
+          45% {
+            filter: blur(0.12px) saturate(1.02) brightness(0.92);
+          }
+          70% {
+            filter: blur(0.2px) saturate(1.2) brightness(1.14);
+          }
+        }
+
+        @keyframes candleFlameGust {
+          0%,
+          18%,
+          100% {
+            left: 0;
+            opacity: 0.9;
+          }
+          20% {
+            left: 1.6px;
+            opacity: 0.98;
+          }
+          22% {
+            left: -1.2px;
+            opacity: 0.82;
+          }
+          24% {
+            left: 0.8px;
+            opacity: 0.9;
+          }
+          58% {
+            left: 0;
+            opacity: 0.9;
+          }
+          60% {
+            left: -1.5px;
+            opacity: 0.98;
+          }
+          62% {
+            left: 1.1px;
+            opacity: 0.82;
+          }
+          64% {
+            left: -0.6px;
+            opacity: 0.9;
+          }
+        }
+
+        @keyframes candleCorePulse {
+          0%,
+          100% {
+            transform: translateY(0) scale(1);
+            opacity: 0.95;
+          }
+          50% {
+            transform: translateY(-0.6px) scale(1.06, 0.92);
+            opacity: 0.82;
+          }
+        }
+
+        @keyframes candleAuraBreath {
+          0%,
+          100% {
+            transform: scale(0.94);
+            opacity: 0.64;
+          }
+          50% {
+            transform: scale(1.08);
+            opacity: 0.86;
           }
         }
 
@@ -1465,6 +1916,29 @@ export default function Home() {
           }
           100% {
             transform: translate(-50%, -50%) rotate(360deg);
+          }
+        }
+
+        @keyframes ritualBorderOrbit {
+          0% {
+            top: 0;
+            left: 0;
+          }
+          25% {
+            top: 0;
+            left: 100%;
+          }
+          50% {
+            top: 100%;
+            left: 100%;
+          }
+          75% {
+            top: 100%;
+            left: 0;
+          }
+          100% {
+            top: 0;
+            left: 0;
           }
         }
 

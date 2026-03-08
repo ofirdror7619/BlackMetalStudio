@@ -5,6 +5,8 @@ from inference.infer_tool import Svc
 import subprocess
 import numpy as np
 
+project_root = Path(__file__).resolve().parent.parent
+
 text = sys.argv[1]
 pitch = float(sys.argv[2])
 formant = float(sys.argv[3])
@@ -13,7 +15,7 @@ echo = sys.argv[5]
 highpass = int(sys.argv[6])
 layers = int(sys.argv[7])  # כמה layered screams
 
-output_dir = Path("../generated_songs")
+output_dir = project_root / "generated_songs"
 output_dir.mkdir(exist_ok=True)
 final_file = output_dir / "scream_final.wav"
 

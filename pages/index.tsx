@@ -75,6 +75,7 @@ export default function Home() {
   const inkSpreadTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const burnTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const ritualLocked = ritualStatus === "Summoning" || ritualStatus === "Forging Track";
+  const canGenerate = !ritualLocked && text.trim().length > 0;
   const emberParticles = useMemo(
     () =>
       Array.from({ length: 18 }, (_, index) => ({
@@ -133,6 +134,10 @@ export default function Home() {
   );
 
   const generate = async () => {
+    if (text.trim().length === 0) {
+      return;
+    }
+
     if (resetStatusTimer.current) {
       clearTimeout(resetStatusTimer.current);
       resetStatusTimer.current = null;
@@ -476,7 +481,7 @@ export default function Home() {
             <span className={`ritualStep ${ritualStatus === "Forging Track" ? "active" : ""}`}><span className="shrineIcon" aria-hidden="true">⛧</span>Forging Track</span>
             <span className={`ritualStep ${ritualStatus === "Complete" ? "active" : ""}`}><span className="shrineIcon" aria-hidden="true">✹</span>Complete</span>
           </div>
-          <button className="mainGenerate" onClick={generate} disabled={ritualLocked}>{ritualLocked ? "Forging Black Metal Song..." : "Generate Black Metal Song"}</button>
+          <button className="mainGenerate" onClick={generate} disabled={!canGenerate}>{ritualLocked ? "Forging Black Metal Song..." : "Generate Black Metal Song"}</button>
         </section>
         <div className={`completionFlash ${completionFlash ? "active" : ""}`} aria-hidden="true" />
       </main>
